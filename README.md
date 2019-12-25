@@ -6,10 +6,10 @@ A simple Python program that generates and solves m x n Sudoku puzzles.
 
 ```sh
 # Python 2
-pip install pysudoku
+pip install py-sudoku
 
 # Python 3
-pip3 install pysudoku
+pip3 install py-sudoku
 ```
 
 ## Usage
