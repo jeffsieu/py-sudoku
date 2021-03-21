@@ -155,7 +155,7 @@ class _SudokuSolver:
 class Sudoku:
     _empty_cell_value = None
 
-    def __init__(self, width, height=None, board=None, difficulty=-1, seed=randrange(sys.maxsize)):
+    def __init__(self, width=3, height=None, board=None, difficulty=-1, seed=randrange(sys.maxsize)):
         self.board = board
         self.width = width
         self.height = height
