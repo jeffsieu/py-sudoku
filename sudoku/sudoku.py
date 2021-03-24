@@ -172,7 +172,7 @@ class Sudoku:
             blank_count = 0
             for row in self.board:
                 for i in range(len(row)):
-                    if type(row[i]) is not int or not 1 <= row[i] <= self.size:
+                    if not row[i] in range(1, self.size + 1):
                         row[i] = Sudoku._empty_cell_value
                         blank_count += 1
             if difficulty == -1:
