@@ -1,6 +1,11 @@
 from random import shuffle, seed as random_seed, randrange
 import sys
 
+
+class UnsolvableSudoku(Exception):
+    pass
+
+
 class _SudokuSolver:
     def __init__(self, sudoku):
         self.width = sudoku.width
@@ -8,7 +13,7 @@ class _SudokuSolver:
         self.size = sudoku.size
         self.sudoku = sudoku
 
-    def _solve(self):
+    def _solve(self, raising=False):
         blanks = self.__get_blanks()
         blank_count = len(blanks)
         are_blanks_filled = [False for _ in range(blank_count)]
@@ -17,6 +22,8 @@ class _SudokuSolver:
             Sudoku._copy_board(self.sudoku.board), blanks, blank_fillers, are_blanks_filled)
         solution_difficulty = 0
         if not solution_board:
+            if raising:
+                raise UnsolvableSudoku
             solution_board = Sudoku.empty(self.width, self.height).board
             solution_difficulty = -2
         return Sudoku(self.width, self.height, board=solution_board, difficulty=solution_difficulty)
@@ -111,12 +118,12 @@ class _SudokuSolver:
 
         # Save list of neighbors affected by the filling of current cell
         revert_list = [False for _ in range(len(blanks))]
-        
+
         for number in range(self.size):
             # Only try filling this cell with numbers its neighbors aren't already filled with
             if not blank_fillers[row][col][number]:
                 continue
-            
+
             # Test number in this cell, number + 1 is used because number is zero-indexed
             board[row][col] = number + 1
 
@@ -134,21 +141,21 @@ class _SudokuSolver:
             if solution_board:
                 return solution_board
 
-            
+
             # No solution found by having tested number in this cell
             # So we reallow neighbor cells to have this number filled in them
             for i, blank in enumerate(blanks):
                 if revert_list[i]:
                     blank_row, blank_col = blank
                     blank_fillers[blank_row][blank_col][number] = True
-            
+
         # If this point is reached, there is no solution with the initial board state,
         # a mistake must have been made in earlier steps
 
         # Declare chosen cell as empty once again
         are_blanks_filled[chosen_blank_index] = False
         board[row][col] = Sudoku._empty_cell_value
-            
+
         return None
 
 
@@ -183,8 +190,8 @@ class Sudoku:
             shuffle(positions)
             self.board = [[(i + 1) if i == positions[j] else Sudoku._empty_cell_value for i in range(self.size)] for j in range(self.size)]
 
-    def solve(self):
-        return _SudokuSolver(self)._solve()
+    def solve(self, raising=False):
+        return _SudokuSolver(self)._solve(raising)
 
     def validate(self):
         row_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
@@ -207,7 +214,7 @@ class Sudoku:
                 col_numbers[col][cell - 1] = True
                 box_numbers[box][cell - 1] = True
         return True
-                
+
     @staticmethod
     def _copy_board(board):
         return [[cell for cell in row] for row in board]
@@ -239,7 +246,7 @@ class Sudoku:
             print('No solution')
             return self
         print(self.__format_board_ascii())
-    
+
     def show_full(self):
         print(self.__str__())
 
@@ -254,7 +261,7 @@ class Sudoku:
             if i == self.size - 1 or i % self.height == self.height - 1:
                 table += ('+-' + '-' * (cell_length + 1) * self.width) * self.height + '+' + '\n'
         return table
-        
+
 
     def __str__(self):
         if self.__difficulty == -2:

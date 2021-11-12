@@ -285,3 +285,9 @@ puzzle.solve().show_full()
 # |       |       |       |
 # +-------+-------+-------+
 ```
+
+If you wish to raise an `UnsolvableSudoku` error when the board is invalid pass a `raising=True` parameter:
+
+```py
+puzzle.solve(raising=True)
+```
