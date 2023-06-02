@@ -181,7 +181,7 @@ class Sudoku:
         if solution:
             return solution
         elif raising:
-            raise Exception('No solution found')
+            raise UnsolvableSudoku('No solution found')
         else:
             solution_board = Sudoku.empty(self.width, self.height).board
             solution_difficulty = -2
