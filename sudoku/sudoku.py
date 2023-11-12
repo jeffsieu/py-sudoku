@@ -282,3 +282,8 @@ Difficulty: {}
 class DiagonalSudoku(Sudoku):
     def __init__(self, size: int = 3, board: Iterable[Iterable[int | None]] | None = None, difficulty: float | None = None, seed: int = randrange(sys.maxsize)):
         super().__init__(size, size, board, difficulty, seed)
+
+
+class _DiagonalSudokuSolver(_SudokuSolver):
+    def __init__(self, sudoku: Sudoku):
+        super().__init__(sudoku)
