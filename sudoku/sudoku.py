@@ -277,3 +277,8 @@ Difficulty: {}
 ---------------------------
 {}
         '''.format(self.size, self.size, self.width, self.height, difficulty_str, self.__format_board_ascii())
+
+
+class DiagonalSudoku(Sudoku):
+    def __init__(self, size: int = 3, board: Iterable[Iterable[int | None]] | None = None, difficulty: float | None = None, seed: int = randrange(sys.maxsize)):
+        super().__init__(size, size, board, difficulty, seed)
