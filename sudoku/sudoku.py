@@ -285,6 +285,8 @@ class DiagonalSudoku(Sudoku):
         self.height = size
         self.size = size * size
         self.__difficulty: float
+        self.diagonal_left_to_right = [(i, i) for i in range(self.size)]
+        self.diagonal_right_to_left = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
 
         assert self.width > 0, 'Width cannot be less than 1'
         assert self.height > 0, 'Height cannot be less than 1'
@@ -313,6 +315,46 @@ class DiagonalSudoku(Sudoku):
             random_seed(seed)
             shuffle(positions)
             self.board = [[positions[j] if i == j else Sudoku._empty_cell_value for i in range(self.size)] for j in range(self.size)]
+
+    def validate(self) -> bool:
+        row_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
+        col_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
+        box_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
+        diagonal_numbers = [[False for _ in range(self.size)] for _ in range(2)]
+
+        for row in range(self.size):
+            for col in range(self.size):
+                cell = self.board[row][col]
+                box = (row // self.height) * self.height + (col // self.width)
+                if cell == Sudoku._empty_cell_value:
+                    continue
+                elif isinstance(cell, int):
+                    if row_numbers[row][cell - 1]:
+                        return False
+                    elif col_numbers[col][cell - 1]:
+                        return False
+                    elif box_numbers[box][cell - 1]:
+                        return False
+                    row_numbers[row][cell - 1] = True
+                    col_numbers[col][cell - 1] = True
+                    box_numbers[box][cell - 1] = True
+        for i in self.diagonal_left_to_right:
+            cell = self.board[i[0]][i[1]]
+            if cell == Sudoku._empty_cell_value:
+                continue
+            elif isinstance(cell, int):
+                if diagonal_numbers[0][cell - 1]:
+                    return False
+                diagonal_numbers[0][cell - 1] = True
+        for i in self.diagonal_right_to_left:
+            cell = self.board[i[0]][i[1]]
+            if cell == Sudoku._empty_cell_value:
+                continue
+            elif isinstance(cell, int):
+                if diagonal_numbers[1][cell - 1]:
+                    return False
+                diagonal_numbers[1][cell - 1] = True
+        return True
 
 
 class _DiagonalSudokuSolver(_SudokuSolver):
