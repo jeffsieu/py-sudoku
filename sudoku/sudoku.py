@@ -321,6 +321,18 @@ class _DiagonalSudokuSolver(_SudokuSolver):
         self.diagonal_left_to_right = [(i, i) for i in range(self.size)]
         self.diagonal_right_to_left = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
 
+    def _solve(self) -> Optional['DiagonalSudoku']:
+        blanks = self.__get_blanks()
+        blank_count = len(blanks)
+        are_blanks_filled = [False for _ in range(blank_count)]
+        blank_fillers = self.__calculate_blank_cell_fillers(blanks)
+        solution_board = self.__get_solution(
+            DiagonalSudoku._copy_board(self.sudoku.board), blanks, blank_fillers, are_blanks_filled)
+        solution_difficulty = 0
+        if not solution_board:
+            return None
+        return DiagonalSudoku(self.width, board=solution_board, difficulty=solution_difficulty)
+
     def __is_neighbor(self, blank1: Tuple[int, int], blank2: Tuple[int, int]) -> bool:
         """
         The function checks whether the cells are neighbors.
