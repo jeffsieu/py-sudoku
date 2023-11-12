@@ -281,12 +281,45 @@ Difficulty: {}
 
 class DiagonalSudoku(Sudoku):
     def __init__(self, size: int = 3, board: Iterable[Iterable[int | None]] | None = None, difficulty: float | None = None, seed: int = randrange(sys.maxsize)):
-        super().__init__(size, size, board, difficulty, seed)
+        self.width = size
+        self.height = size
+        self.size = size * size
+        self.__difficulty: float
+
+        assert self.width > 0, 'Width cannot be less than 1'
+        assert self.height > 0, 'Height cannot be less than 1'
+        assert self.size > 1, 'Board size cannot be 1 x 1'
+
+        if difficulty is not None:
+            self.__difficulty = difficulty
+
+        if board:
+            blank_count = 0
+            self.board: List[List[Union[int, None]]] = [
+                [cell for cell in row] for row in board]
+            for row in self.board:
+                for i in range(len(row)):
+                    if not row[i] in range(1, self.size + 1):
+                        row[i] = Sudoku._empty_cell_value
+                        blank_count += 1
+            if difficulty == None:
+                if self.validate():
+                    self.__difficulty = blank_count / \
+                        (self.size * self.size)
+                else:
+                    self.__difficulty = -2
+        else:
+            positions = list(range(1, self.size+1))
+            random_seed(seed)
+            shuffle(positions)
+            self.board = [[positions[j] if i == j else Sudoku._empty_cell_value for i in range(self.size)] for j in range(self.size)]
 
 
 class _DiagonalSudokuSolver(_SudokuSolver):
-    def __init__(self, sudoku: Sudoku):
+    def __init__(self, sudoku: DiagonalSudoku):
         super().__init__(sudoku)
+        self.diagonal_left_to_right = [(i, i) for i in range(self.size)]
+        self.diagonal_right_to_left = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
 
     def __is_neighbor(self, blank1: Tuple[int, int], blank2: Tuple[int, int]) -> bool:
         """
@@ -302,8 +335,45 @@ class _DiagonalSudokuSolver(_SudokuSolver):
         grid_row2, grid_col2 = row2 // self.height, col2 // self.width
         if grid_row1 == grid_row2 and grid_col1 == grid_col2:
             return True
-        diag_l_to_r = [(i, i) for i in range(self.size)]
-        diag_r_to_l = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
-        if blank1 in diag_l_to_r and blank2 in diag_l_to_r:
+        if blank1 in self.diagonal_left_to_right and blank2 in self.diagonal_left_to_right:
             return True
-        return blank1 in diag_r_to_l and blank2 in diag_r_to_l
+        return blank1 in self.diagonal_right_to_left and blank2 in self.diagonal_right_to_left
+
+    def __calculate_blank_cell_fillers(self, blanks: List[Tuple[int, int]]) -> List[List[List[bool]]]:
+        sudoku = self.sudoku
+        valid_fillers = [[[True for _ in range(self.size)] for _ in range(
+            self.size)] for _ in range(self.size)]
+        for row, col in blanks:
+            for i in range(self.size):
+                same_row = sudoku.board[row][i]
+                same_col = sudoku.board[i][col]
+                if same_row and i != col:
+                    valid_fillers[row][col][same_row - 1] = False
+                if same_col and i != row:
+                    valid_fillers[row][col][same_col - 1] = False
+            
+            grid_row, grid_col = row // sudoku.height, col // sudoku.width
+            grid_row_start = grid_row * sudoku.height
+            grid_col_start = grid_col * sudoku.width
+            for y_offset in range(sudoku.height):
+                for x_offset in range(sudoku.width):
+                    if grid_row_start + y_offset == row and grid_col_start + x_offset == col:
+                        continue
+                    cell = sudoku.board[grid_row_start +
+                                        y_offset][grid_col_start + x_offset]
+                    if cell:
+                        valid_fillers[row][col][cell - 1] = False
+            
+            if (row, col) in self.diagonal_left_to_right:
+                for i in self.diagonal_left_to_right:
+                    same_diagonal = sudoku.board[row][col]
+                    if i == (row,col) or not same_diagonal:
+                        continue
+                    valid_fillers[row][col][same_diagonal - 1] = False
+            elif (row, col) in self.diagonal_right_to_left:
+                for i in self.diagonal_right_to_left:
+                    same_diagonal = sudoku.board[i[0]][i[1]]
+                    if i == (row,col) or not same_diagonal:
+                        continue
+                    valid_fillers[row][col][same_diagonal - 1] = False
+        return valid_fillers
