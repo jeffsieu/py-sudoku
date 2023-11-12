@@ -287,3 +287,23 @@ class DiagonalSudoku(Sudoku):
 class _DiagonalSudokuSolver(_SudokuSolver):
     def __init__(self, sudoku: Sudoku):
         super().__init__(sudoku)
+
+    def __is_neighbor(self, blank1: Tuple[int, int], blank2: Tuple[int, int]) -> bool:
+        """
+        The function checks whether the cells are neighbors.
+        Checks whether they are in one row, in one column,
+        in one square whose dimensions are `self.width` and in the same diagonal.
+        """
+        row1, col1 = blank1
+        row2, col2 = blank2
+        if row1 == row2 or col1 == col2:
+            return True
+        grid_row1, grid_col1 = row1 // self.height, col1 // self.width
+        grid_row2, grid_col2 = row2 // self.height, col2 // self.width
+        if grid_row1 == grid_row2 and grid_col1 == grid_col2:
+            return True
+        diag_l_to_r = [(i, i) for i in range(self.size)]
+        diag_r_to_l = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
+        if blank1 in diag_l_to_r and blank2 in diag_l_to_r:
+            return True
+        return blank1 in diag_r_to_l and blank2 in diag_r_to_l
