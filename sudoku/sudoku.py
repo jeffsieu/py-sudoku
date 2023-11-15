@@ -379,7 +379,7 @@ class _DiagonalSudokuSolver(_SudokuSolver):
         self.diagonal_right_to_left = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
 
     def _solve(self) -> Optional['DiagonalSudoku']:
-        blanks = self.__get_blanks()
+        blanks = _SudokuSolver.__get_blanks()
         blank_count = len(blanks)
         are_blanks_filled = [False for _ in range(blank_count)]
         blank_fillers = self.__calculate_blank_cell_fillers(blanks)
@@ -445,3 +445,49 @@ class _DiagonalSudokuSolver(_SudokuSolver):
                         continue
                     valid_fillers[row][col][same_diagonal - 1] = False
         return valid_fillers
+    
+    def __get_solution(self, board: List[List[Union[int, None]]], blanks: List[Tuple[int, int]], blank_fillers: List[List[List[bool]]], are_blanks_filled: List[bool]) -> Optional[List[List[int]]]:
+        min_filler_count = None
+        chosen_blank = None
+        for i, blank in enumerate(blanks):
+            x, y = blank
+            if are_blanks_filled[i]:
+                continue
+            valid_filler_count = sum(blank_fillers[x][y])
+            if valid_filler_count == 0:
+                return None
+            if not min_filler_count or valid_filler_count < min_filler_count:
+                min_filler_count = valid_filler_count
+                chosen_blank = blank
+                chosen_blank_index = i
+        
+        if not chosen_blank:
+            return cast(List[List[int]], board)
+        
+        row, col = chosen_blank
+        are_blanks_filled[chosen_blank_index] = True
+        revert_list = [False for _ in range(len(blanks))]
+        for number in range(self.size):
+            if not blank_fillers[row][col][number]:
+                continue
+            board[row][col] = number + 1
+            for i, blank in enumerate(blanks):
+                blank_row, blank_col = blank
+                if blank == chosen_blank:
+                    continue
+                if self.__is_neighbor(blank, chosen_blank) and blank_fillers[blank_row][blank_col][number]:
+                    blank_fillers[blank_row][blank_col][number] = False
+                    revert_list[i] = True
+                else:
+                    revert_list[i] = False
+            solution_board = self.__get_solution(
+                board, blanks, blank_fillers, are_blanks_filled)
+            if solution_board:
+                return solution_board
+            for i, blank in enumerate(blanks):
+                if revert_list[i]:
+                    blank_row, blank_col = blank
+                    blank_fillers[blank_row][blank_col][number] = True
+        are_blanks_filled[chosen_blank_index] = False
+        board[row][col] = Sudoku._empty_cell_value
+        return None
