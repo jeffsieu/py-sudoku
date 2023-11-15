@@ -301,9 +301,17 @@ class DiagonalSudoku(Sudoku):
                 [cell for cell in row] for row in board]
             for row in self.board:
                 for i in range(len(row)):
-                    if not row[i] in range(1, self.size + 1):
+                    if row[i] not in range(1, self.size + 1):
                         row[i] = Sudoku._empty_cell_value
                         blank_count += 1
+            for row, col in self.diagonal_left_to_right:
+                if self.board[row][col] not in range(1, self.size+1):
+                    self.board[row][col] = Sudoku._empty_cell_value
+                    blank_count += 1
+            for row, col in self.diagonal_right_to_left:
+                if self.board[row][col] not in range(1, self.size+1):
+                    self.board[row][col] = Sudoku._empty_cell_value
+                    blank_count += 1
             if difficulty == None:
                 if self.validate():
                     self.__difficulty = blank_count / \
@@ -329,11 +337,7 @@ class DiagonalSudoku(Sudoku):
                 if cell == Sudoku._empty_cell_value:
                     continue
                 elif isinstance(cell, int):
-                    if row_numbers[row][cell - 1]:
-                        return False
-                    elif col_numbers[col][cell - 1]:
-                        return False
-                    elif box_numbers[box][cell - 1]:
+                    if row_numbers[row][cell - 1] or col_numbers[col][cell - 1] or box_numbers[box][cell - 1]:
                         return False
                     row_numbers[row][cell - 1] = True
                     col_numbers[col][cell - 1] = True
@@ -355,6 +359,17 @@ class DiagonalSudoku(Sudoku):
                     return False
                 diagonal_numbers[1][cell - 1] = True
         return True
+
+    def solve(self, raising: bool = False) -> 'DiagonalSudoku':
+        solution = _DiagonalSudokuSolver(self)._solve() if self.validate() else None
+        if solution:
+            return solution
+        elif raising:
+            raise UnsolvableSudoku('No solution found')
+        else:
+            solution_board = DiagonalSudoku.empty(self.width, self.height).board
+            solution_difficulty = -2
+            return DiagonalSudoku(board=solution_board, difficulty=solution_difficulty)
 
 
 class _DiagonalSudokuSolver(_SudokuSolver):
@@ -413,8 +428,7 @@ class _DiagonalSudokuSolver(_SudokuSolver):
                 for x_offset in range(sudoku.width):
                     if grid_row_start + y_offset == row and grid_col_start + x_offset == col:
                         continue
-                    cell = sudoku.board[grid_row_start +
-                                        y_offset][grid_col_start + x_offset]
+                    cell = sudoku.board[grid_row_start + y_offset][grid_col_start + x_offset]
                     if cell:
                         valid_fillers[row][col][cell - 1] = False
             
