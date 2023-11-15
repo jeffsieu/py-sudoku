@@ -324,6 +324,17 @@ class DiagonalSudoku(Sudoku):
             shuffle(positions)
             self.board = [[positions[j] if i == j else Sudoku._empty_cell_value for i in range(self.size)] for j in range(self.size)]
 
+    def difficulty(self, difficulty: float) -> 'DiagonalSudoku':
+        assert 0 < difficulty < 1, 'Difficulty must be between 0 and 1'
+        indices = list(range(self.size * self.size))
+        shuffle(indices)
+        problem_board = self.solve().board
+        for index in indices[:int(difficulty * self.size * self.size)]:
+            row_index = index // self.size
+            col_index = index % self.size
+            problem_board[row_index][col_index] = Sudoku._empty_cell_value
+        return DiagonalSudoku(self.width, self.height, problem_board, difficulty)
+
     def validate(self) -> bool:
         row_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
         col_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
