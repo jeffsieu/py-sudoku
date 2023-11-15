@@ -333,7 +333,7 @@ class DiagonalSudoku(Sudoku):
             row_index = index // self.size
             col_index = index % self.size
             problem_board[row_index][col_index] = Sudoku._empty_cell_value
-        return DiagonalSudoku(self.width, self.height, problem_board, difficulty)
+        return DiagonalSudoku(self.width, problem_board, difficulty)
 
     def validate(self) -> bool:
         row_numbers = [[False for _ in range(self.size)] for _ in range(self.size)]
@@ -381,6 +381,62 @@ class DiagonalSudoku(Sudoku):
             solution_board = DiagonalSudoku.empty(self.width, self.height).board
             solution_difficulty = -2
             return DiagonalSudoku(board=solution_board, difficulty=solution_difficulty)
+    
+    def show(self) -> None:
+        if self.__difficulty == -2:
+            print('Puzzle has no solution')
+        if self.__difficulty == -1:
+            print('Invalid puzzle. Please solve the puzzle (puzzle.solve()), or set a difficulty (puzzle.difficulty())')
+        if not self.board:
+            print('No solution')
+        print(self.__format_board_ascii())
+
+    def show_full(self) -> None:
+        print(self.__str__())
+
+    def __format_board_ascii(self) -> str:
+        table = ''
+        cell_length = len(str(self.size))
+        row_square = []
+        format_int = '{0:0' + str(cell_length) + 'd}'
+
+        for i, row in enumerate(self.board):
+            if i == 0:
+                table += ('+-' + '-' * (cell_length + 1) * self.width) * self.height + '+' + '\n'
+            
+            for x in range(len(row)):
+                if x != Sudoku._empty_cell_value:
+                    if i == x:
+                        row_square.append("\033[1m\033[4m{}\033[0m".format(format_int.format(row[x])))
+                    elif self.diagonal_right_to_left[i][1] == x:
+                        row_square.append("\033[1m\033[4m{}\033[0m".format(format_int.format(row[x])))
+                    else:
+                        row_square.append(format_int.format(row[x]))
+                else:
+                    row_square.append(' ' * cell_length)
+            table += (('| ' + '{} ' * self.width) * self.height + '|').format(*row_square)  + '\n'
+            row_square = []
+
+            if i == self.size - 1 or i % self.height == self.height - 1:
+                table += ('+-' + '-' * (cell_length + 1) * self.width) * self.height + '+' + '\n'
+        return table
+
+    def __str__(self) -> str:
+        if self.__difficulty == -2:
+            difficulty_str = 'INVALID PUZZLE (GIVEN PUZZLE HAS NO SOLUTION)'
+        elif self.__difficulty == -1:
+            difficulty_str = 'INVALID PUZZLE'
+        elif self.__difficulty == 0:
+            difficulty_str = 'SOLVED'
+        else:
+            difficulty_str = '{:.2f}'.format(self.__difficulty)
+        return '''
+------------------------------------
+{}x{} ({}x{}) DIAGONAL SUDOKU PUZZLE
+Difficulty: {}
+------------------------------------
+{}
+        '''.format(self.size, self.size, self.width, self.height, difficulty_str, self.__format_board_ascii())
 
 
 class _DiagonalSudokuSolver(_SudokuSolver):
@@ -390,7 +446,7 @@ class _DiagonalSudokuSolver(_SudokuSolver):
         self.diagonal_right_to_left = [(i, j) for i, j in enumerate(range(self.size-1,-1,-1))]
 
     def _solve(self) -> Optional['DiagonalSudoku']:
-        blanks = _SudokuSolver.__get_blanks()
+        blanks = self.__get_blanks()
         blank_count = len(blanks)
         are_blanks_filled = [False for _ in range(blank_count)]
         blank_fillers = self.__calculate_blank_cell_fillers(blanks)
@@ -400,6 +456,14 @@ class _DiagonalSudokuSolver(_SudokuSolver):
         if not solution_board:
             return None
         return DiagonalSudoku(self.width, board=solution_board, difficulty=solution_difficulty)
+
+    def __get_blanks(self) -> List[Tuple[int, int]]:
+        blanks = []
+        for i, row in enumerate(self.sudoku.board):
+            for j, cell in enumerate(row):
+                if cell == Sudoku._empty_cell_value:
+                    blanks += [(i, j)]
+        return blanks
 
     def __is_neighbor(self, blank1: Tuple[int, int], blank2: Tuple[int, int]) -> bool:
         """
