@@ -142,6 +142,17 @@ class Sudoku:
     _empty_cell_value = None
 
     def __init__(self, width: int = 3, height: Optional[int] = None, board: Optional[Iterable[Iterable[Union[int, None]]]] = None, difficulty: Optional[float] = None, seed: int = randrange(sys.maxsize)):
+        """
+        Initializes a Sudoku board
+
+        :param width: Integer representing the width of the Sudoku grid. Defaults to 3.
+        :param height: Optional integer representing the height of the Sudoku grid. If not provided, defaults to the value of `width`.
+        :param board: Optional iterable for a the initial state of the Sudoku board.
+        :param difficulty: Optional float representing the difficulty level of the Sudoku puzzle. If provided, sets the difficulty level based on the number of empty cells. Defaults to None.
+        :param seed: Integer representing the seed for the random number generator used to generate the board. Defaults to a random seed within the system's maximum size.
+
+        :raises AssertionError: If the width, height, or size of the board is invalid.
+        """
         self.width = width
         self.height = height if height else width
         self.size = self.width * self.height
@@ -177,6 +188,12 @@ class Sudoku:
                            else Sudoku._empty_cell_value for i in range(self.size)] for j in range(self.size)]
 
     def solve(self, raising: bool = False) -> 'Sudoku':
+        """
+        Solves the given Sudoku board
+
+        :param raising: Boolean for if you wish to raise an UnsolvableSodoku error when the board is invalid. Defaults to `false`.
+        :raises UnsolvableSudoku:
+        """
         solution = _SudokuSolver(self)._solve() if self.validate() else None
         if solution:
             return solution
@@ -224,6 +241,15 @@ class Sudoku:
         return Sudoku(width, height, board, 0)
 
     def difficulty(self, difficulty: float) -> 'Sudoku':
+        """
+        Sets the difficulty of the Sudoku board by removing cells.
+
+        This method modifies the current Sudoku instance by removing cells from the solved puzzle to achieve the desired difficulty level. The difficulty is specified as a float value between 0 and 1, where 0 represents the easiest puzzle (fully solved) and 1 represents the most difficult puzzle (almost empty).
+
+        :param difficulty: A float value between 0 and 1 representing the desired difficulty level of the Sudoku puzzle.
+        :return: A new Sudoku instance representing the puzzle with adjusted difficulty.
+        :raises AssertionError: If the provided difficulty value is not within the range of 0 to 1.
+        """
         assert 0 < difficulty < 1, 'Difficulty must be between 0 and 1'
         indices = list(range(self.size * self.size))
         shuffle(indices)
@@ -235,6 +261,9 @@ class Sudoku:
         return Sudoku(self.width, self.height, problem_board, difficulty)
 
     def show(self) -> None:
+        """
+        Prints the puzzle to the terminal
+        """
         if self.__difficulty == -2:
             print('Puzzle has no solution')
         if self.__difficulty == -1:
@@ -244,6 +273,9 @@ class Sudoku:
         print(self.__format_board_ascii())
 
     def show_full(self) -> None:
+        """
+        Prints the puzzle to the terminal, with more information
+        """
         print(self.__str__())
 
     def __format_board_ascii(self) -> str:
