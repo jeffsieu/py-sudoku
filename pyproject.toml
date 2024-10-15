@@ -1,0 +1,22 @@
+[project]
+name = "py-sudoku"
+version = "2.0.0"
+requires-python = ">=2.7"
+authors = [
+  {name = "Jeff Sieu", email = "jeffsieu@gmail.com"},
+]
+description = "A simple Python package that generates and solves m x n Sudoku puzzles."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["SUDOKU"]
+classifiers = [
+  "Programming Language :: Python :: 2",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/jeffsieu/py-sudoku"
+Issues = "https://github.com/jeffsieu/py-sudoku/issues"
+GitHub = "https://github.com/jeffsieu/py-sudoku"
