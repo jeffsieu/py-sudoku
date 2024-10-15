@@ -1,6 +1,6 @@
 # py-sudoku
 
-A simple Python program that generates and solves m x n Sudoku puzzles.
+A simple Python package that generates and solves m x n Sudoku puzzles.
 
 ## Install
 
