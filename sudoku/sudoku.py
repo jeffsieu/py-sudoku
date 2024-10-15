@@ -1,21 +1,33 @@
-from pickletools import float8
 from random import shuffle, seed as random_seed, randrange
 import sys
-from typing import Iterable, List, Optional, Tuple, Union, cast
 
+try:
+    from typing import Iterable, List, Optional, Tuple, Union, cast, TYPE_CHECKING
+except ImportError:
+    TYPE_CHECKING = False
+    if not TYPE_CHECKING:
+        # Stubs for Python 2
+        cast = lambda _, value: value  # type: ignore
+        
+        class FakeList():
+            def __getitem__(self, key):
+                return FakeList()
+
+        List = FakeList() # type: ignore
 
 class UnsolvableSudoku(Exception):
     pass
 
-
 class _SudokuSolver:
-    def __init__(self, sudoku: 'Sudoku'):
+    def __init__(self, sudoku):
+        # type: (Sudoku) -> None
         self.width = sudoku.width
         self.height = sudoku.height
         self.size = sudoku.size
         self.sudoku = sudoku
 
-    def _solve(self) -> Optional['Sudoku']:
+    def _solve(self):
+        # type: () -> Optional[Sudoku]
         blanks = self.__get_blanks()
         blank_count = len(blanks)
         are_blanks_filled = [False for _ in range(blank_count)]
@@ -27,8 +39,8 @@ class _SudokuSolver:
             return None
         return Sudoku(self.width, self.height, board=solution_board, difficulty=solution_difficulty)
 
-    def _multiple_solutions(self) -> Optional['Sudoku']:
-
+    def _has_multiple_solutions(self):
+        # type: () -> bool
         blanks = self.__get_blanks()
         blank_count = len(blanks)
         are_blanks_filled = [False for _ in range(blank_count)]
@@ -40,12 +52,14 @@ class _SudokuSolver:
         blank_fillers = self.__calculate_blank_cell_fillers(blanks)
         solution_board2 = self.__get_solution(
             Sudoku._copy_board(self.sudoku.board), blanks, blank_fillers, are_blanks_filled, reverse=True)
+        
         if not solution_board:
             return False
-        elif solution_board != solution_board2:
-            return True
+        
+        return solution_board != solution_board2
 
-    def __calculate_blank_cell_fillers(self, blanks: List[Tuple[int, int]]) -> List[List[List[bool]]]:
+    def __calculate_blank_cell_fillers(self, blanks):
+        # type: (List[Tuple[int, int]]) -> List[List[List[bool]]]
         sudoku = self.sudoku
         valid_fillers = [[[True for _ in range(self.size)] for _ in range(
             self.size)] for _ in range(self.size)]
@@ -70,7 +84,8 @@ class _SudokuSolver:
                         valid_fillers[row][col][cell - 1] = False
         return valid_fillers
 
-    def __get_blanks(self) -> List[Tuple[int, int]]:
+    def __get_blanks(self):
+        # type: () -> List[Tuple[int, int]]
         blanks = []
         for i, row in enumerate(self.sudoku.board):
             for j, cell in enumerate(row):
@@ -78,7 +93,8 @@ class _SudokuSolver:
                     blanks += [(i, j)]
         return blanks
 
-    def __is_neighbor(self, blank1: Tuple[int, int], blank2: Tuple[int, int]) -> bool:
+    def __is_neighbor(self, blank1, blank2):
+        # type: (Tuple[int, int], Tuple[int, int]) -> bool
         row1, col1 = blank1
         row2, col2 = blank2
         if row1 == row2 or col1 == col2:
@@ -88,7 +104,8 @@ class _SudokuSolver:
         return grid_row1 == grid_row2 and grid_col1 == grid_col2
 
     # Optimized version of above
-    def __get_solution(self, board: List[List[Union[int, None]]], blanks: List[Tuple[int, int]], blank_fillers: List[List[List[bool]]], are_blanks_filled: List[bool], reverse=False) -> Optional[List[List[int]]]:
+    def __get_solution(self, board, blanks, blank_fillers, are_blanks_filled, reverse=False):
+        # type: (List[List[Optional[int]]], List[Tuple[int, int]], List[List[List[bool]]], List[bool], bool) -> Optional[List[List[int]]]
         min_filler_count = None
         chosen_blank = None
         for i, blank in enumerate(blanks):
@@ -163,9 +180,11 @@ class _SudokuSolver:
 # Optimized version of above
 
 class Sudoku:
-    _empty_cell_value = None
+    _empty_cell_value = None # type: None
+    __difficulty = None # type: float
 
-    def __init__(self, width: int = 3, height: Optional[int] = None, board: Optional[Iterable[Iterable[Union[int, None]]]] = None, difficulty: Optional[float] = None, seed: int = randrange(sys.maxsize)):
+    def __init__(self, width = 3, height = None, board = None, difficulty = None, seed = randrange(sys.maxsize)):
+        # type: (int, Optional[int], Optional[Iterable[Iterable[Optional[int]]]], Optional[float], int) -> None
         """
         Initializes a Sudoku board
 
@@ -180,7 +199,6 @@ class Sudoku:
         self.width = width
         self.height = height if height else width
         self.size = self.width * self.height
-        self.__difficulty: float
 
         assert self.width > 0, 'Width cannot be less than 1'
         assert self.height > 0, 'Height cannot be less than 1'
@@ -191,8 +209,7 @@ class Sudoku:
 
         if board:
             blank_count = 0
-            self.board: List[List[Union[int, None]]] = [
-                [cell for cell in row] for row in board]
+            self.board = [[cell for cell in row] for row in board] # type: List[List[Optional[int]]]
             for row in self.board:
                 for i in range(len(row)):
                     if not row[i] in range(1, self.size + 1):
@@ -211,33 +228,38 @@ class Sudoku:
             self.board = [[(i + 1) if i == positions[j]
                            else Sudoku._empty_cell_value for i in range(self.size)] for j in range(self.size)]
 
-    def solve(self, raising: bool = False) -> 'Sudoku':
+    def solve(self, assert_solvable = False):
+        # type: (bool) -> Sudoku
         """
         Solves the given Sudoku board
 
-        :param raising: Boolean for if you wish to raise an UnsolvableSodoku error when the board is invalid. Defaults to `false`.
+        :param assert_solvable: Boolean for if you wish to raise an UnsolvableSodoku error when the board is invalid. Defaults to `false`.
         :raises UnsolvableSudoku:
         """
         solution = _SudokuSolver(self)._solve() if self.validate() else None
         if solution:
             return solution
-        elif raising:
+        elif assert_solvable:
             raise UnsolvableSudoku('No solution found')
         else:
             solution_board = Sudoku.empty(self.width, self.height).board
             solution_difficulty = -2
             return Sudoku(board=solution_board, difficulty=solution_difficulty)
 
-    def multiple_solutions(self) -> bool:
+    def has_multiple_solutions(self):
+        # type: () -> bool
         """
-        Solves the given Sudoku board via backtracking :
+        Returns if the Sudoku board has multiple solutions.
+
+        Solves the Sudoku board via backtracking:
         - once by filling the cells with increasing numbers
         - once by filling the cells with decreasing numbers
         If the two solutions are different, the board has multiple solutions (and vice versa).
         """
-        return _SudokuSolver(self)._multiple_solutions()
+        return _SudokuSolver(self)._has_multiple_solutions()
 
-    def validate(self) -> bool:
+    def validate(self):
+        # type: () -> bool
         row_numbers = [[False for _ in range(self.size)]
                        for _ in range(self.size)]
         col_numbers = [[False for _ in range(self.size)]
@@ -264,16 +286,19 @@ class Sudoku:
         return True
 
     @ staticmethod
-    def _copy_board(board: Iterable[Iterable[Union[int, None]]]) -> List[List[Union[int, None]]]:
+    def _copy_board(board):
+        # type: (Iterable[Iterable[Optional[int]]]) -> List[List[Optional[int]]]
         return [[cell for cell in row] for row in board]
 
     @ staticmethod
-    def empty(width: int, height: int):
+    def empty(width, height):
+        # type: (int, int) -> Sudoku
         size = width * height
         board = [[Sudoku._empty_cell_value] * size] * size
         return Sudoku(width, height, board, 0)
 
-    def difficulty(self, difficulty: float) -> 'Sudoku':
+    def difficulty(self, difficulty):
+        # type: (float) -> Sudoku
         """
         Sets the difficulty of the Sudoku board by removing cells.
 
@@ -293,14 +318,16 @@ class Sudoku:
             problem_board[row_index][col_index] = Sudoku._empty_cell_value
         # check for multiple solutions
         puzzle = Sudoku(self.width, self.height, problem_board, difficulty)
-        if puzzle.multiple_solutions():
+        if puzzle.has_multiple_solutions():
             return Sudoku(self.width, self.height, problem_board, -3)
         return Sudoku(self.width, self.height, problem_board, difficulty)
 
-    def get_difficulty(self) -> Optional[float]:
+    def get_difficulty(self):
+        # type: () -> float
         return self.__difficulty
 
-    def show(self) -> None:
+    def show(self):
+        # type: () -> None
         """
         Prints the puzzle to the terminal
         """
@@ -316,13 +343,15 @@ class Sudoku:
             print('Puzzle has exactly one solution')
         print(self.__format_board_ascii())
 
-    def show_full(self) -> None:
+    def show_full(self):
+        # type: () -> None
         """
         Prints the puzzle to the terminal, with more information
         """
         print(self.__str__())
 
-    def __format_board_ascii(self) -> str:
+    def __format_board_ascii(self):
+        # type: () -> str
         table = ''
         cell_length = len(str(self.size))
         format_int = '{0:0' + str(cell_length) + 'd}'
@@ -337,7 +366,8 @@ class Sudoku:
                           self.width) * self.height + '+' + '\n'
         return table
 
-    def __str__(self) -> str:
+    def __str__(self):
+        # type: () -> str
         if self.__difficulty == -2:
             difficulty_str = 'INVALID PUZZLE (GIVEN PUZZLE HAS NO SOLUTION)'
         elif self.__difficulty == -1:
@@ -358,11 +388,13 @@ Difficulty: {}
 
 
 class DiagonalSudoku(Sudoku):
-    def __init__(self, size: int = 3, board: Iterable[Iterable[int | None]] | None = None, difficulty: float | None = None, seed: int = randrange(sys.maxsize)):
+    __difficulty = None # type: float
+
+    def __init__(self, size = 3, board = None, difficulty = None, seed = randrange(sys.maxsize)):
+        # type: (int, Optional[Iterable[Iterable[Optional[int]]]], Optional[float], int) -> None
         self.width = size
         self.height = size
         self.size = size * size
-        self.__difficulty: float
         self.diagonal_left_to_right = [(i, i) for i in range(self.size)]
         self.diagonal_right_to_left = [
             (i, j) for i, j in enumerate(range(self.size-1, -1, -1))]
@@ -376,12 +408,11 @@ class DiagonalSudoku(Sudoku):
 
         if board:
             blank_count = 0
-            self.board: List[List[Union[int, None]]] = [
-                [cell for cell in row] for row in board]
-            for row in self.board:
-                for i in range(len(row)):
-                    if row[i] not in range(1, self.size + 1):
-                        row[i] = Sudoku._empty_cell_value
+            self.board = [[cell for cell in row] for row in board] # type: List[List[Union[int, None]]]
+            for _row in self.board:
+                for i in range(len(_row)):
+                    if _row[i] not in range(1, self.size + 1):
+                        _row[i] = Sudoku._empty_cell_value
                         blank_count += 1
             for row, col in self.diagonal_left_to_right:
                 if self.board[row][col] not in range(1, self.size+1):
@@ -404,7 +435,8 @@ class DiagonalSudoku(Sudoku):
             self.board = [[positions[j] if i == j else Sudoku._empty_cell_value for i in range(
                 self.size)] for j in range(self.size)]
 
-    def difficulty(self, difficulty: float) -> 'DiagonalSudoku':
+    def difficulty(self, difficulty):
+        # type: (float) -> DiagonalSudoku
         assert 0 < difficulty < 1, 'Difficulty must be between 0 and 1'
         indices = list(range(self.size * self.size))
         shuffle(indices)
@@ -415,7 +447,8 @@ class DiagonalSudoku(Sudoku):
             problem_board[row_index][col_index] = Sudoku._empty_cell_value
         return DiagonalSudoku(self.width, problem_board, difficulty)
 
-    def validate(self) -> bool:
+    def validate(self):
+        # type: () -> bool
         row_numbers = [[False for _ in range(self.size)]
                        for _ in range(self.size)]
         col_numbers = [[False for _ in range(self.size)]
@@ -455,7 +488,8 @@ class DiagonalSudoku(Sudoku):
                 diagonal_numbers[1][cell - 1] = True
         return True
 
-    def solve(self, raising: bool = False) -> 'DiagonalSudoku':
+    def solve(self, raising = False):
+        # type: (bool) -> DiagonalSudoku
         solution = _DiagonalSudokuSolver(
             self)._solve() if self.validate() else None
         if solution:
@@ -468,7 +502,8 @@ class DiagonalSudoku(Sudoku):
             solution_difficulty = -2
             return DiagonalSudoku(board=solution_board, difficulty=solution_difficulty)
 
-    def show(self) -> None:
+    def show(self):
+        # type: () -> None
         if self.__difficulty == -2:
             print('Puzzle has no solution')
         if self.__difficulty == -1:
@@ -477,10 +512,12 @@ class DiagonalSudoku(Sudoku):
             print('No solution')
         print(self.__format_board_ascii())
 
-    def show_full(self) -> None:
+    def show_full(self):
+        # type: () -> None
         print(self.__str__())
 
-    def __format_board_ascii(self) -> str:
+    def __format_board_ascii(self):
+        # type: () -> str
         table = ''
         cell_length = len(str(self.size))
         row_square = []
@@ -512,7 +549,8 @@ class DiagonalSudoku(Sudoku):
                           self.width) * self.height + '+' + '\n'
         return table
 
-    def __str__(self) -> str:
+    def __str__(self):
+        # type: () -> str
         if self.__difficulty == -2:
             difficulty_str = 'INVALID PUZZLE (GIVEN PUZZLE HAS NO SOLUTION)'
         elif self.__difficulty == -1:
@@ -531,13 +569,15 @@ Difficulty: {}
 
 
 class _DiagonalSudokuSolver(_SudokuSolver):
-    def __init__(self, sudoku: DiagonalSudoku):
+    def __init__(self, sudoku):
+        # type: (DiagonalSudoku) -> None
         super().__init__(sudoku)
         self.diagonal_left_to_right = [(i, i) for i in range(self.size)]
         self.diagonal_right_to_left = [
             (i, j) for i, j in enumerate(range(self.size-1, -1, -1))]
 
-    def _solve(self) -> Optional['DiagonalSudoku']:
+    def _solve(self):
+        # type: () -> Optional[DiagonalSudoku]
         blanks = self.__get_blanks()
         blank_count = len(blanks)
         are_blanks_filled = [False for _ in range(blank_count)]
@@ -549,7 +589,8 @@ class _DiagonalSudokuSolver(_SudokuSolver):
             return None
         return DiagonalSudoku(self.width, board=solution_board, difficulty=solution_difficulty)
 
-    def __get_blanks(self) -> List[Tuple[int, int]]:
+    def __get_blanks(self):
+        # type: () -> List[Tuple[int, int]]
         blanks = []
         for i, row in enumerate(self.sudoku.board):
             for j, cell in enumerate(row):
@@ -557,7 +598,8 @@ class _DiagonalSudokuSolver(_SudokuSolver):
                     blanks += [(i, j)]
         return blanks
 
-    def __is_neighbor(self, blank1: Tuple[int, int], blank2: Tuple[int, int]) -> bool:
+    def __is_neighbor(self, blank1, blank2):
+        # type: (Tuple[int, int], Tuple[int, int]) -> bool
         """
         The function checks whether the cells are neighbors.
         Checks whether they are in one row, in one column,
@@ -575,7 +617,8 @@ class _DiagonalSudokuSolver(_SudokuSolver):
             return True
         return blank1 in self.diagonal_right_to_left and blank2 in self.diagonal_right_to_left
 
-    def __calculate_blank_cell_fillers(self, blanks: List[Tuple[int, int]]) -> List[List[List[bool]]]:
+    def __calculate_blank_cell_fillers(self, blanks):
+        # type: (List[Tuple[int, int]]) -> List[List[List[bool]]]
         sudoku = self.sudoku
         valid_fillers = [[[True for _ in range(self.size)] for _ in range(
             self.size)] for _ in range(self.size)]
@@ -601,20 +644,21 @@ class _DiagonalSudokuSolver(_SudokuSolver):
                         valid_fillers[row][col][cell - 1] = False
 
             if (row, col) in self.diagonal_left_to_right:
-                for i in self.diagonal_left_to_right:
+                for j in self.diagonal_left_to_right:
                     same_diagonal = sudoku.board[row][col]
-                    if i == (row, col) or not same_diagonal:
+                    if j == (row, col) or not same_diagonal:
                         continue
                     valid_fillers[row][col][same_diagonal - 1] = False
             elif (row, col) in self.diagonal_right_to_left:
-                for i in self.diagonal_right_to_left:
-                    same_diagonal = sudoku.board[i[0]][i[1]]
-                    if i == (row, col) or not same_diagonal:
+                for j in self.diagonal_right_to_left:
+                    same_diagonal = sudoku.board[j[0]][j[1]]
+                    if j == (row, col) or not same_diagonal:
                         continue
                     valid_fillers[row][col][same_diagonal - 1] = False
         return valid_fillers
 
-    def __get_solution(self, board: List[List[Union[int, None]]], blanks: List[Tuple[int, int]], blank_fillers: List[List[List[bool]]], are_blanks_filled: List[bool]) -> Optional[List[List[int]]]:
+    def __get_solution(self, board, blanks, blank_fillers, are_blanks_filled):
+        # type: (List[List[Optional[int]]], List[Tuple[int, int]], List[List[List[bool]]], List[bool]) -> Optional[List[List[int]]]
         min_filler_count = None
         chosen_blank = None
         for i, blank in enumerate(blanks):
